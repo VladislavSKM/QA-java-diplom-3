@@ -1,4 +1,5 @@
 import io.qameta.allure.Description;
+import io.qameta.allure.Step;
 import io.restassured.response.ValidatableResponse;
 import org.junit.After;
 import org.junit.Before;
@@ -20,26 +21,51 @@ public class LoginTest {
     private String accessToken;
 
     @Before
-    public void setUp() {
+    @Step("Создание драйвера браузера")
+    public void createDriver() {
+        String browserName = System.getProperty("browser");
+        if (browserName == null) {
+            browserName = "chrome";
+        }
+
         ChromeOptions options = new ChromeOptions();
-        options.setBinary("C:\\Users\\User\\AppData\\Local\\Yandex\\YandexBrowser\\Application\\browser.exe");
-        driver = new ChromeDriver(options);
+        switch (browserName) {
+            case "chrome":
+                System.setProperty("webdriver.chrome.driver", "src/main/resources/chromedriver.exe");
+                driver = new ChromeDriver(options);
+                break;
+
+            case "yandex":
+                System.setProperty("webdriver.chrome.driver", "src/main/resources/yandexdriver.exe");
+                driver = new ChromeDriver(options);
+                break;
+            default:
+                throw new RuntimeException("Некорректный браузер: " + browserName);
+        }
         driver.manage().window().maximize();
+    }
+
+    @Before
+    @Step("Создание клинта")
+    public void createUser() {
+        // Создаем данные пользователя для теста
         userSteps = new UserSteps(REQUEST_SPECIFICATION, RESPONSE_SPECIFICATION);
+        user = User.createRandom();
+        ValidatableResponse response = userSteps.create(user);
+        accessToken = response.extract().path("accessToken");
     }
 
     @After
+    @Step("Удаляем клинта и закрываем браузер")
     public void tearDown() {
+        // Удаляем данные пользователя
+        userSteps.removed(accessToken);
         driver.quit();
     }
 
     @Test
     @Description("Login user from login to account button (successful)")
     public void loginUserFromLoginAccountButtonTest() {
-        // Создаем данные пользователя для теста
-        user = User.createRandom();
-        ValidatableResponse response = userSteps.create(user);
-        accessToken = response.extract().path("accessToken");
         // (Форма 1) Главная страница Stellarburgers
         MainBurgerPage mainBurgerPage = new MainBurgerPage(driver);
         mainBurgerPage.open();
@@ -53,17 +79,11 @@ public class LoginTest {
         authUserPage.clickLoginUserButton();
         // (Форма 1) Главная страница Stellarburgers
         mainBurgerPage.isCreateOrderButtonVisible();
-        // Удаляем данные пользователя
-        userSteps.removed(accessToken);
     }
 
     @Test
     @Description("Login user from recovery password page (successful)")
     public void loginUserFromRecoveryPasswordPageTest() {
-        // Создаем данные пользователя для теста
-        user = User.createRandom();
-        ValidatableResponse response = userSteps.create(user);
-        accessToken = response.extract().path("accessToken");
         // (Форма 1) Главная страница Stellarburgers
         MainBurgerPage mainBurgerPage = new MainBurgerPage(driver);
         mainBurgerPage.open();
@@ -84,17 +104,11 @@ public class LoginTest {
         authUserPage.clickLoginUserButton();
         // (Форма 1) Главная страница Stellarburgers
         mainBurgerPage.isCreateOrderButtonVisible();
-        // Удаляем данные пользователя
-        userSteps.removed(accessToken);
     }
 
     @Test
     @Description("Login user from registration page (successful)")
     public void loginUserFromRegistrationPageTest() {
-        // Создаем данные пользователя для теста
-        user = User.createRandom();
-        ValidatableResponse response = userSteps.create(user);
-        accessToken = response.extract().path("accessToken");
         // (Форма 1) Главная страница Stellarburgers
         MainBurgerPage mainBurgerPage = new MainBurgerPage(driver);
         mainBurgerPage.open();
@@ -115,17 +129,11 @@ public class LoginTest {
         authUserPage.clickLoginUserButton();
         // (Форма 1) Главная страница Stellarburgers
         mainBurgerPage.isCreateOrderButtonVisible();
-        // Удаляем данные пользователя
-        userSteps.removed(accessToken);
     }
 
     @Test
     @Description("Login user from private office button (successful)")
     public void loginUserFromPrivateOfficeTest() {
-        // Создаем данные пользователя для теста
-        user = User.createRandom();
-        ValidatableResponse response = userSteps.create(user);
-        accessToken = response.extract().path("accessToken");
         // (Форма 1) Главная страница Stellarburgers
         MainBurgerPage mainBurgerPage = new MainBurgerPage(driver);
         mainBurgerPage.open();
@@ -139,8 +147,6 @@ public class LoginTest {
         authUserPage.clickLoginUserButton();
         // (Форма 1) Главная страница Stellarburgers
         mainBurgerPage.isCreateOrderButtonVisible();
-        // Удаляем данные пользователя
-        userSteps.removed(accessToken);
     }
 
     @Test
@@ -164,10 +170,6 @@ public class LoginTest {
     @Test
     @Description("Log out user (successful)")
     public void LogOutTest() {
-        // Создаем данные пользователя для теста
-        user = User.createRandom();
-        ValidatableResponse response = userSteps.create(user);
-        accessToken = response.extract().path("accessToken");
         // (Форма 1) Главная страница Stellarburgers
         MainBurgerPage mainBurgerPage = new MainBurgerPage(driver);
         mainBurgerPage.open();
@@ -188,8 +190,6 @@ public class LoginTest {
         privateOfficePage.clickLogOutButton();
         // (Форма 2) Страница авторизации
         authUserPage.isAuthFormVisible();
-        // Удаляем данные пользователя
-        userSteps.removed(accessToken);
     }
 
 }

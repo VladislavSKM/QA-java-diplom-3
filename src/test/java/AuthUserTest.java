@@ -1,4 +1,5 @@
 import io.qameta.allure.Description;
+import io.qameta.allure.Step;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -15,16 +16,39 @@ public class AuthUserTest {
     private WebDriver driver;
     private User user;
 
-
     @Before
-    public void setUp() {
+    @Step("Создание драйвера браузера")
+    public void createDriver() {
+        String browserName = System.getProperty("browser");
+        if (browserName == null) {
+            browserName = "chrome";
+        }
+
         ChromeOptions options = new ChromeOptions();
-        options.setBinary("C:\\Users\\User\\AppData\\Local\\Yandex\\YandexBrowser\\Application\\browser.exe");
-        driver = new ChromeDriver(options);
+        switch (browserName) {
+            case "chrome":
+                System.setProperty("webdriver.chrome.driver", "src/main/resources/chromedriver.exe");
+                driver = new ChromeDriver(options);
+                break;
+
+            case "yandex":
+                System.setProperty("webdriver.chrome.driver", "src/main/resources/yandexdriver.exe");
+                driver = new ChromeDriver(options);
+                break;
+            default:
+                throw new RuntimeException("Некорректный браузер: " + browserName);
+        }
         driver.manage().window().maximize();
+    }
+    @Before
+    @Step("Создание клинта")
+    public void createUser() {
+        // Создаем данные пользователя для теста
+        user = User.createRandom();
     }
 
     @After
+    @Step("Закрываем браузер")
     public void tearDown() {
         driver.quit();
     }
@@ -32,8 +56,6 @@ public class AuthUserTest {
     @Test
     @Description("Registration user (Success)")
     public void RegistrationUserSuccessTest() {
-        // Создаем данные пользователя для теста
-        user = User.createRandom();
         // (Форма 1) Главная страница Stellarburgers
         MainBurgerPage mainBurgerPage = new MainBurgerPage(driver);
         mainBurgerPage.open();
@@ -56,8 +78,6 @@ public class AuthUserTest {
     @Test
     @Description("Registration user with incorrect password (filed)")
     public void RegistrationUserIncorrectPassTest() {
-        // Создаем данные пользователя для теста
-        user = User.createRandom();
         // (Форма 1) Главная страница Stellarburgers
         MainBurgerPage mainBurgerPage = new MainBurgerPage(driver);
         mainBurgerPage.open();

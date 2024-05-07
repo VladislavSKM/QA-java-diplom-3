@@ -1,4 +1,5 @@
 import io.qameta.allure.Description;
+import io.qameta.allure.Step;
 import io.restassured.response.ValidatableResponse;
 import org.junit.After;
 import org.junit.Before;
@@ -22,26 +23,51 @@ public class PrivateOfficeTest {
     private String accessToken;
 
     @Before
-    public void setUp() {
+    @Step("Создание драйвера браузера")
+    public void createDriver() {
+        String browserName = System.getProperty("browser");
+        if (browserName == null) {
+            browserName = "chrome";
+        }
+
         ChromeOptions options = new ChromeOptions();
-        options.setBinary("C:\\Users\\User\\AppData\\Local\\Yandex\\YandexBrowser\\Application\\browser.exe");
-        driver = new ChromeDriver(options);
+        switch (browserName) {
+            case "chrome":
+                System.setProperty("webdriver.chrome.driver", "src/main/resources/chromedriver.exe");
+                driver = new ChromeDriver(options);
+                break;
+
+            case "yandex":
+                System.setProperty("webdriver.chrome.driver", "src/main/resources/yandexdriver.exe");
+                driver = new ChromeDriver(options);
+                break;
+            default:
+                throw new RuntimeException("Некорректный браузер: " + browserName);
+        }
         driver.manage().window().maximize();
+    }
+
+    @Before
+    @Step("Создание клинта")
+    public void createUser() {
+        // Создаем данные пользователя для теста
         userSteps = new UserSteps(REQUEST_SPECIFICATION, RESPONSE_SPECIFICATION);
+        user = User.createRandom();
+        ValidatableResponse response = userSteps.create(user);
+        accessToken = response.extract().path("accessToken");
     }
 
     @After
+    @Step("Удаляем клинта и закрываем браузер")
     public void tearDown() {
+        // Удаляем данные пользователя
+        userSteps.removed(accessToken);
         driver.quit();
     }
 
     @Test
     @Description("Check private office page (successful)")
     public void checkPrivateOfficePageTest() {
-        // Создаем данные пользователя для теста
-        user = User.createRandom();
-        ValidatableResponse response = userSteps.create(user);
-        accessToken = response.extract().path("accessToken");
         // (Форма 1) Главная страница Stellarburgers
         MainBurgerPage mainBurgerPage = new MainBurgerPage(driver);
         mainBurgerPage.open();
@@ -59,17 +85,11 @@ public class PrivateOfficeTest {
         // (Форма 3) Страница "Личный кабинет"
         PrivateOfficePage privateOfficePage = new PrivateOfficePage(driver);
         privateOfficePage.isProfileHeaderVisible();
-        // Удаляем данные пользователя
-        userSteps.removed(accessToken);
     }
 
     @Test
     @Description("Check transition to constructor page (successful)")
     public void checkTransitionToConstructorPageTest() {
-        // Создаем данные пользователя для теста
-        user = User.createRandom();
-        ValidatableResponse response = userSteps.create(user);
-        accessToken = response.extract().path("accessToken");
         // (Форма 1) Главная страница Stellarburgers
         MainBurgerPage mainBurgerPage = new MainBurgerPage(driver);
         mainBurgerPage.open();
@@ -91,17 +111,11 @@ public class PrivateOfficeTest {
         // (Форма 4) Страница "Конструктор"
         ConstructorPage constructor = new ConstructorPage(driver);
         constructor.isCreateBurgerHeaderVisible();
-        // Удаляем данные пользователя
-        userSteps.removed(accessToken);
     }
 
     @Test
     @Description("Check transition to Stellar-burger page (successful)")
     public void checkTransitionToStellarBurgerPageTest() {
-        // Создаем данные пользователя для теста
-        user = User.createRandom();
-        ValidatableResponse response = userSteps.create(user);
-        accessToken = response.extract().path("accessToken");
         // (Форма 1) Главная страница Stellarburgers
         MainBurgerPage mainBurgerPage = new MainBurgerPage(driver);
         mainBurgerPage.open();
@@ -123,7 +137,5 @@ public class PrivateOfficeTest {
         // (Форма 4) Страница "Конструктор"
         ConstructorPage constructor = new ConstructorPage(driver);
         constructor.isCreateBurgerHeaderVisible();
-        // Удаляем данные пользователя
-        userSteps.removed(accessToken);
     }
 }

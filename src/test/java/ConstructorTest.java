@@ -1,4 +1,5 @@
 import io.qameta.allure.Description;
+import io.qameta.allure.Step;
 import io.restassured.response.ValidatableResponse;
 import org.junit.After;
 import org.junit.Before;
@@ -21,26 +22,51 @@ public class ConstructorTest {
     private String accessToken;
 
     @Before
-    public void setUp() {
+    @Step("Создание драйвера браузера")
+    public void createDriver() {
+        String browserName = System.getProperty("browser");
+        if (browserName == null) {
+            browserName = "chrome";
+        }
+
         ChromeOptions options = new ChromeOptions();
-        options.setBinary("C:\\Users\\User\\AppData\\Local\\Yandex\\YandexBrowser\\Application\\browser.exe");
-        driver = new ChromeDriver(options);
+        switch (browserName) {
+            case "chrome":
+                System.setProperty("webdriver.chrome.driver", "src/main/resources/chromedriver.exe");
+                driver = new ChromeDriver(options);
+                break;
+
+            case "yandex":
+                System.setProperty("webdriver.chrome.driver", "src/main/resources/yandexdriver.exe");
+                driver = new ChromeDriver(options);
+                break;
+            default:
+                throw new RuntimeException("Некорректный браузер: " + browserName);
+        }
         driver.manage().window().maximize();
+    }
+
+    @Before
+    @Step("Создание клинта")
+    public void createUser() {
+        // Создаем данные пользователя для теста
         userSteps = new UserSteps(REQUEST_SPECIFICATION, RESPONSE_SPECIFICATION);
+        user = User.createRandom();
+        ValidatableResponse response = userSteps.create(user);
+        accessToken = response.extract().path("accessToken");
     }
 
     @After
+    @Step("Удаляем клинта и закрываем браузер")
     public void tearDown() {
+        // Удаляем данные пользователя
+        userSteps.removed(accessToken);
         driver.quit();
     }
 
     @Test
     @Description("Check buns chapter (successful)")
     public void checkBunsChapterTest() {
-        // Создаем данные пользователя для теста
-        user = User.createRandom();
-        ValidatableResponse response = userSteps.create(user);
-        accessToken = response.extract().path("accessToken");
         // (Форма 1) Главная страница Stellarburgers
         MainBurgerPage mainBurgerPage = new MainBurgerPage(driver);
         mainBurgerPage.open();
@@ -55,10 +81,8 @@ public class ConstructorTest {
         // (Форма 3) Страница "Конструктор"
         ConstructorPage constructor = new ConstructorPage(driver);
         constructor.isCreateBurgerHeaderVisible();
+        constructor.isBunsButtonVisible();
         constructor.isBunsHeaderVisible();
-        // Удаляем данные пользователя
-        userSteps.removed(accessToken);
-
     }
 
     @Test
@@ -70,17 +94,12 @@ public class ConstructorTest {
         // (Форма 2) Страница "Конструктор"
         ConstructorPage constructor = new ConstructorPage(driver);
         constructor.isCreateBurgerHeaderVisible();
-        constructor.clickConstructorButton();
-        constructor.isBunsHeaderVisible();
+        constructor.isBunsButtonVisible();
     }
 
     @Test
     @Description("Check sauce chapter (successful)")
     public void checkSauceChapterTest() {
-        // Создаем данные пользователя для теста
-        user = User.createRandom();
-        ValidatableResponse response = userSteps.create(user);
-        accessToken = response.extract().path("accessToken");
         // (Форма 1) Главная страница Stellarburgers
         MainBurgerPage mainBurgerPage = new MainBurgerPage(driver);
         mainBurgerPage.open();
@@ -95,10 +114,8 @@ public class ConstructorTest {
         // (Форма 3) Страница "Конструктор"
         ConstructorPage constructor = new ConstructorPage(driver);
         constructor.isCreateBurgerHeaderVisible();
-        constructor.clickSauceButton();
-        constructor.isSauceHeaderVisible();
-        // Удаляем данные пользователя
-        userSteps.removed(accessToken);
+        constructor.scrollToTheSauceHeader();
+        constructor.isSauceButtonVisible();
     }
 
     @Test
@@ -110,17 +127,13 @@ public class ConstructorTest {
         // (Форма 2) Страница "Конструктор"
         ConstructorPage constructor = new ConstructorPage(driver);
         constructor.isCreateBurgerHeaderVisible();
-        constructor.clickSauceButton();
-        constructor.isSauceHeaderVisible();
+        constructor.scrollToTheSauceHeader();
+        constructor.isSauceButtonVisible();
     }
 
     @Test
     @Description("Check fillings chapter (successful)")
     public void checkSauceFillingsTest() {
-        // Создаем данные пользователя для теста
-        user = User.createRandom();
-        ValidatableResponse response = userSteps.create(user);
-        accessToken = response.extract().path("accessToken");
         // (Форма 1) Главная страница Stellarburgers
         MainBurgerPage mainBurgerPage = new MainBurgerPage(driver);
         mainBurgerPage.open();
@@ -135,10 +148,8 @@ public class ConstructorTest {
         // (Форма 3) Страница "Конструктор"
         ConstructorPage constructor = new ConstructorPage(driver);
         constructor.isCreateBurgerHeaderVisible();
-        constructor.clickFillingsButton();
-        constructor.isFillingsHeaderVisible();
-        // Удаляем данные пользователя
-        userSteps.removed(accessToken);
+        constructor.scrollToTheFillingsHeader();
+        constructor.isFillingsButtonVisible();
     }
 
     @Test
@@ -150,8 +161,8 @@ public class ConstructorTest {
         // (Форма 2) Страница "Конструктор"
         ConstructorPage constructor = new ConstructorPage(driver);
         constructor.isCreateBurgerHeaderVisible();
-        constructor.clickFillingsButton();
-        constructor.isFillingsHeaderVisible();
+        constructor.scrollToTheFillingsHeader();
+        constructor.isFillingsButtonVisible();
     }
 
 }
